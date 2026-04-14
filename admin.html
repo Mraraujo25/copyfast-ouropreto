@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Painel - Copyfast</title>
+
+<style>
+body { font-family: Arial; background:#f5f5f5; }
+.container { max-width:900px; margin:auto; padding:20px; }
+
+.card {
+    background:white;
+    padding:15px;
+    margin-top:10px;
+    border-radius:10px;
+}
+
+select {
+    margin-top:10px;
+    padding:5px;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h1>Painel de Pedidos</h1>
+<div id="lista"></div>
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+import { getFirestore, collection, getDocs, updateDoc, doc } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyCKGMEnwbW6UzJv2zwWFBEZN3xvXf1yejM",
+  authDomain: "copyfast-4c42b.firebaseapp.com",
+  projectId: "copyfast-4c42b",
+  storageBucket: "copyfast-4c42b.firebasestorage.app",
+  messagingSenderId: "1083745936240",
+  appId: "1:1083745936240:web:d5c83f5c89033d7060a5b5"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+
+async function carregarPedidos() {
+    const querySnapshot = await getDocs(collection(db, "pedidos"));
+    const lista = document.getElementById("lista");
+    lista.innerHTML = "";
+
+    querySnapshot.forEach((docSnap) => {
+        const p = docSnap.data();
+
+        lista.innerHTML += `
+        <div class="card">
+            <b>${p.nome}</b><br>
+            ${p.paginas} páginas<br>
+            R$ ${p.total}<br>
+            <a href="${p.arquivo}" target="_blank">Abrir arquivo</a><br>
+
+            <select onchange="mudarStatus('${docSnap.id}', this.value)">
+                <option ${p.status=="Recebido"?"selected":""}>Recebido</option>
+                <option ${p.status=="Em produção"?"selected":""}>Em produção</option>
+                <option ${p.status=="Pronto"?"selected":""}>Pronto</option>
+            </select>
+        </div>
+        `;
+    });
+}
+
+window.mudarStatus = async function(id, status) {
+    await updateDoc(doc(db, "pedidos", id), {
+        status: status
+    });
+    carregarPedidos();
+}
+
+carregarPedidos();
+</script>
+
+</body>
+</html>
