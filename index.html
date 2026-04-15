@@ -4,10 +4,11 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Copyfast Ouro Preto</title>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
+
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
 
     body {
       margin: 0;
@@ -34,12 +35,12 @@
     }
 
     .container {
-      max-width: 680px;
+      max-width: 760px;
       margin: 32px auto;
       background: #fff;
-      border-radius: 14px;
+      border-radius: 16px;
       padding: 28px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+      box-shadow: 0 10px 28px rgba(0,0,0,0.08);
     }
 
     label {
@@ -75,7 +76,13 @@
       opacity: 0.92;
     }
 
-    .price-box, .pix-box, .status-box {
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px;
+    }
+
+    .box {
       margin-top: 20px;
       padding: 16px;
       border-radius: 12px;
@@ -84,8 +91,18 @@
 
     .price-box {
       text-align: center;
-      font-size: 22px;
+      font-size: 24px;
       font-weight: bold;
+    }
+
+    .muted {
+      font-size: 13px;
+      color: #555;
+      margin-top: 6px;
+    }
+
+    .hidden {
+      display: none;
     }
 
     .pix-box {
@@ -103,12 +120,6 @@
       font-weight: bold;
     }
 
-    .small {
-      font-size: 13px;
-      color: #555;
-      margin-top: 8px;
-    }
-
     .copy-btn {
       margin-top: 12px;
       background: #222;
@@ -123,55 +134,110 @@
       background: #fff;
       padding: 8px;
     }
+
+    .badge {
+      display: inline-block;
+      margin-top: 10px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      background: #e8e8e8;
+      font-size: 13px;
+      font-weight: bold;
+    }
+
+    @media (max-width: 700px) {
+      .row {
+        grid-template-columns: 1fr;
+      }
+
+      .container {
+        margin: 16px;
+        padding: 20px;
+      }
+    }
   </style>
 </head>
 <body>
 
   <header>
     <h1>Copyfast Ouro Preto</h1>
-    <p>Envie seu arquivo, calcule o valor e gere o PIX automaticamente</p>
+    <p>Envie seu arquivo, escolha papel e tamanho, gere o PIX e finalize após o pagamento</p>
   </header>
 
   <div class="container">
     <label for="nome">Seu nome</label>
     <input type="text" id="nome" placeholder="Digite seu nome">
 
-    <label for="tipo">Tipo de impressão</label>
-    <select id="tipo">
-      <option value="pb">Preto e branco</option>
-      <option value="colorido">Colorido</option>
-    </select>
+    <div class="row">
+      <div>
+        <label for="tipo">Tipo de impressão</label>
+        <select id="tipo">
+          <option value="pb">Preto e branco</option>
+          <option value="colorido">Colorido</option>
+        </select>
+      </div>
 
-    <label for="paginas">Número de páginas</label>
-    <input type="number" id="paginas" min="1" value="1">
+      <div>
+        <label for="tamanho">Tamanho do papel</label>
+        <select id="tamanho"></select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="papel">Tipo de papel</label>
+        <select id="papel"></select>
+      </div>
+
+      <div>
+        <label for="arquivo">Arquivo</label>
+        <input type="file" id="arquivo">
+      </div>
+    </div>
+
+    <div id="paginaWrapper">
+      <label for="paginas">Número de páginas</label>
+      <input type="number" id="paginas" min="1" value="1">
+      <div class="muted" id="paginasInfo">Se o arquivo for PDF, tentarei contar automaticamente.</div>
+    </div>
 
     <label for="instrucao">Instruções</label>
-    <textarea id="instrucao" placeholder="Ex: frente e verso, grampear, entregar amanhã..."></textarea>
+    <textarea id="instrucao" placeholder="Ex: frente e verso, grampear, urgente..."></textarea>
 
-    <label for="arquivo">Arquivo</label>
-    <input type="file" id="arquivo">
+    <div class="box">
+      <div>Valor por página: <strong id="valorPagina">R$ 0,00</strong></div>
+      <div>Desconto aplicado: <strong id="descontoAplicado">0%</strong></div>
+      <div class="muted" id="detalheCalculo">Aguardando configuração...</div>
+    </div>
 
-    <div class="price-box">
+    <div class="box price-box">
       Total: R$ <span id="total">0.00</span>
     </div>
 
     <button onclick="enviar()">Enviar pedido</button>
 
-    <div class="status-box" id="statusBox">Enviando arquivo e gerando PIX...</div>
+    <div class="box status-box" id="statusBox">Enviando arquivo e gerando PIX...</div>
 
-    <div class="pix-box" id="pixBox">
+    <div class="box pix-box" id="pixBox">
       <h3>PIX gerado com sucesso</h3>
       <p><strong>Copia e cola:</strong></p>
       <div id="pixCode"></div>
       <button class="copy-btn" onclick="copiarPix()">Copiar código PIX</button>
       <div id="qrArea"></div>
       <button class="copy-btn" id="btnPago" onclick="verificarPagamento()">Já paguei</button>
-      <p class="small" id="pixStatusMsg">Pague o PIX e depois clique em "Já paguei".</p>
+      <p class="muted" id="pixStatusMsg">Pague o PIX e depois clique em "Já paguei".</p>
+      <div class="badge" id="pedidoBadge">Pedido aguardando pagamento</div>
     </div>
+  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
     import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-storage.js";
+    import {
+      getFirestore,
+      doc,
+      getDoc
+    } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCKGMEnwbW6UzJv2zwWFBEZN3xvXf1yejM",
@@ -184,27 +250,123 @@
 
     const app = initializeApp(firebaseConfig);
     const storage = getStorage(app);
+    const db = getFirestore(app);
 
-    const precoPB = 0.20;
-    const precoColorido = 1.00;
-
+    let configuracao = null;
     let ultimoPaymentId = null;
     let ultimaMensagemWhatsapp = "";
 
+    const numeroWhatsapp = "5531999999999";
+
+    async function carregarConfiguracao() {
+      const refConfig = doc(db, "configuracoes", "precos");
+      const snap = await getDoc(refConfig);
+
+      if (!snap.exists()) {
+        alert("Configuração de preços não encontrada. Abra a dashboard e salve as configurações primeiro.");
+        return;
+      }
+
+      configuracao = snap.data();
+      preencherSelects();
+      calcular();
+    }
+
+    function preencherSelects() {
+      const selectTamanho = document.getElementById("tamanho");
+      const selectPapel = document.getElementById("papel");
+
+      selectTamanho.innerHTML = "";
+      selectPapel.innerHTML = "";
+
+      (configuracao.tamanhos || []).forEach(t => {
+        selectTamanho.innerHTML += `<option value="${t}">${t}</option>`;
+      });
+
+      (configuracao.papeis || []).forEach(p => {
+        selectPapel.innerHTML += `<option value="${p.id}">${p.nome}</option>`;
+      });
+    }
+
+    function pegarValorPagina(tipo, tamanho, papel) {
+      if (!configuracao || !configuracao.precos || !configuracao.precos[tipo]) return 0;
+      const chave = `${tamanho}_${papel}`;
+      return Number(configuracao.precos[tipo][chave] || 0);
+    }
+
+    function pegarDesconto(paginas) {
+      let percentual = 0;
+      const regras = configuracao?.descontos || [];
+
+      for (const regra of regras) {
+        if (paginas >= Number(regra.min)) {
+          percentual = Number(regra.percentual);
+        }
+      }
+
+      return percentual;
+    }
+
     function calcular() {
+      if (!configuracao) return;
+
       const tipo = document.getElementById("tipo").value;
+      const tamanho = document.getElementById("tamanho").value;
+      const papel = document.getElementById("papel").value;
       const paginas = parseInt(document.getElementById("paginas").value) || 0;
 
-      const total = tipo === "pb"
-        ? paginas * precoPB
-        : paginas * precoColorido;
+      const valorPagina = pegarValorPagina(tipo, tamanho, papel);
+      const subtotal = paginas * valorPagina;
+      const descontoPercentual = pegarDesconto(paginas);
+      const descontoValor = subtotal * (descontoPercentual / 100);
+      const total = subtotal - descontoValor;
 
+      document.getElementById("valorPagina").innerText = `R$ ${valorPagina.toFixed(2)}`;
+      document.getElementById("descontoAplicado").innerText = `${descontoPercentual}%`;
       document.getElementById("total").innerText = total.toFixed(2);
+      document.getElementById("detalheCalculo").innerText =
+        `${paginas} página(s) × R$ ${valorPagina.toFixed(2)} = R$ ${subtotal.toFixed(2)} | desconto: R$ ${descontoValor.toFixed(2)}`;
+    }
+
+    async function contarPaginasPDF(file) {
+      const pdfjsLib = window.pdfjsLib;
+      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
+
+      const buffer = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+      return pdf.numPages;
+    }
+
+    async function tratarArquivo() {
+      const file = document.getElementById("arquivo").files[0];
+      const info = document.getElementById("paginasInfo");
+      const inputPaginas = document.getElementById("paginas");
+
+      if (!file) return;
+
+      const nome = file.name.toLowerCase();
+      const isPdf = file.type === "application/pdf" || nome.endsWith(".pdf");
+
+      if (isPdf) {
+        info.innerText = "PDF detectado. Contando páginas automaticamente...";
+        try {
+          const totalPaginas = await contarPaginasPDF(file);
+          inputPaginas.value = totalPaginas;
+          info.innerText = `PDF detectado. ${totalPaginas} página(s) encontradas automaticamente.`;
+          calcular();
+        } catch (e) {
+          info.innerText = "Não consegui contar as páginas do PDF. Informe manualmente.";
+        }
+      } else {
+        info.innerText = "Arquivo não é PDF. Informe o número de páginas manualmente.";
+      }
     }
 
     document.getElementById("tipo").addEventListener("change", calcular);
+    document.getElementById("tamanho").addEventListener("change", calcular);
+    document.getElementById("papel").addEventListener("change", calcular);
     document.getElementById("paginas").addEventListener("input", calcular);
-    calcular();
+    document.getElementById("arquivo").addEventListener("change", tratarArquivo);
 
     window.copiarPix = async function () {
       const texto = document.getElementById("pixCode").innerText;
@@ -219,7 +381,9 @@
     window.enviar = async function () {
       const nome = document.getElementById("nome").value.trim();
       const tipo = document.getElementById("tipo").value;
-      const paginas = document.getElementById("paginas").value;
+      const tamanho = document.getElementById("tamanho").value;
+      const papel = document.getElementById("papel").value;
+      const paginas = parseInt(document.getElementById("paginas").value) || 0;
       const instrucao = document.getElementById("instrucao").value.trim();
       const file = document.getElementById("arquivo").files[0];
       const total = document.getElementById("total").innerText;
@@ -236,6 +400,11 @@
 
       if (!file) {
         alert("Selecione um arquivo.");
+        return;
+      }
+
+      if (!paginas || paginas < 1) {
+        alert("Informe o número de páginas.");
         return;
       }
 
@@ -258,10 +427,10 @@
           },
           body: JSON.stringify({
             nome: nome,
-            tipo: tipo,
+            tipo: `${tipo} | ${tamanho} | ${papel}`,
             paginas: Number(paginas),
             total: Number(total),
-            descricao: `Impressão ${tipo} - ${paginas} páginas`,
+            descricao: `Impressão ${tipo} - ${tamanho} - ${papel} - ${paginas} páginas`,
             arquivo: url
           })
         });
@@ -281,63 +450,68 @@
         }
 
         const mensagem = `Olá! Pedido de impressão:
-        Nome: ${nome}
-        Tipo: ${tipo}
-        Páginas: ${paginas}
-        Total: R$ ${total}
-        Instruções: ${instrucao || "Nenhuma"}
-        Arquivo: ${url}`;
+Nome: ${nome}
+Tipo: ${tipo}
+Tamanho: ${tamanho}
+Papel: ${papel}
+Páginas: ${paginas}
+Total: R$ ${total}
+Instruções: ${instrucao || "Nenhuma"}
+Arquivo: ${url}`;
 
         ultimoPaymentId = pix.id;
         ultimaMensagemWhatsapp = mensagem;
 
         document.getElementById("pixStatusMsg").innerText = 'Pague o PIX e depois clique em "Já paguei".';
-
       } catch (erro) {
         statusBox.style.display = "none";
         alert("Erro: " + erro.message);
         console.error(erro);
       }
     };
+
     window.verificarPagamento = async function () {
-  if (!ultimoPaymentId) {
-    alert("Nenhum pagamento encontrado.");
-    return;
-  }
+      if (!ultimoPaymentId) {
+        alert("Nenhum pagamento encontrado.");
+        return;
+      }
 
-  const msg = document.getElementById("pixStatusMsg");
-  msg.innerText = "Verificando pagamento...";
+      const msg = document.getElementById("pixStatusMsg");
+      const badge = document.getElementById("pedidoBadge");
+      msg.innerText = "Verificando pagamento...";
 
-  try {
-    const resposta = await fetch("https://us-central1-copyfast-4c42b.cloudfunctions.net/verificarPagamentoPix", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        paymentId: ultimoPaymentId
-      })
-    });
+      try {
+        const resposta = await fetch("https://us-central1-copyfast-4c42b.cloudfunctions.net/verificarPagamentoPix", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            paymentId: ultimoPaymentId
+          })
+        });
 
-    const dados = await resposta.json();
+        const dados = await resposta.json();
 
-    if (!resposta.ok) {
-      throw new Error(dados.error || "Erro ao verificar pagamento");
-    }
+        if (!resposta.ok) {
+          throw new Error(dados.error || "Erro ao verificar pagamento");
+        }
 
-    if (dados.status === "approved") {
-      msg.innerText = "Pagamento confirmado! Abrindo WhatsApp...";
-      window.location.href = `https://wa.me/5531989628676?text=${encodeURIComponent(ultimaMensagemWhatsapp)}`;
-    } else {
-      msg.innerText = "Pagamento ainda não foi confirmado. Aguarde alguns segundos e tente novamente.";
-    }
-  } catch (erro) {
-    msg.innerText = "Erro ao verificar pagamento.";
-    alert("Erro: " + erro.message);
-  }
-};
+        if (dados.status === "approved") {
+          msg.innerText = "Pagamento confirmado! Abrindo WhatsApp...";
+          badge.innerText = "Pedido pago";
+          window.location.href = `https://wa.me/${numeroWhatsapp}?text=${encodeURIComponent(ultimaMensagemWhatsapp)}`;
+        } else {
+          badge.innerText = "Aguardando pagamento";
+          msg.innerText = "Pagamento ainda não foi confirmado. Aguarde alguns segundos e tente novamente.";
+        }
+      } catch (erro) {
+        msg.innerText = "Erro ao verificar pagamento.";
+        alert("Erro: " + erro.message);
+      }
+    };
 
-</script>
-
+    carregarConfiguracao();
+  </script>
 </body>
 </html>
