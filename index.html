@@ -5,8 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Copyfast Ouro Preto</title>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs" type="module"></script>
-
   <style>
     * { box-sizing: border-box; }
 
@@ -99,10 +97,6 @@
       font-size: 13px;
       color: #555;
       margin-top: 6px;
-    }
-
-    .hidden {
-      display: none;
     }
 
     .pix-box {
@@ -198,7 +192,7 @@
     <div id="paginaWrapper">
       <label for="paginas">Número de páginas</label>
       <input type="number" id="paginas" min="1" value="1">
-      <div class="muted" id="paginasInfo">Se o arquivo for PDF, tentarei contar automaticamente.</div>
+      <div class="muted" id="paginasInfo">Se o arquivo for PDF, tentarei contar as páginas e detectar o tamanho automaticamente.</div>
     </div>
 
     <label for="instrucao">Instruções</label>
@@ -238,6 +232,10 @@
       doc,
       getDoc
     } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+    import * as pdfjsLib from "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.min.mjs";
+
+    pdfjsLib.GlobalWorkerOptions.workerSrc =
+      "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
 
     const firebaseConfig = {
       apiKey: "AIzaSyCKGMEnwbW6UzJv2zwWFBEZN3xvXf1yejM",
@@ -256,7 +254,7 @@
     let ultimoPaymentId = null;
     let ultimaMensagemWhatsapp = "";
 
-    const numeroWhatsapp = "5531989628676";
+    const numeroWhatsapp = "5531999999999";
 
     async function carregarConfiguracao() {
       const refConfig = doc(db, "configuracoes", "precos");
@@ -328,88 +326,50 @@
         `${paginas} página(s) × R$ ${valorPagina.toFixed(2)} = R$ ${subtotal.toFixed(2)} | desconto: R$ ${descontoValor.toFixed(2)}`;
     }
 
-    async function analisarPDF(file) {
-  const pdfjsLib = window.pdfjsLib;
-  pdfjsLib.GlobalWorkerOptions.workerSrc =
-    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
+    function detectarTamanhoPorMM(w, h) {
+      const formatos = [
+        { nome: "A6", w: 105, h: 148 },
+        { nome: "A5", w: 148, h: 210 },
+        { nome: "A4", w: 210, h: 297 }
+      ];
 
-  const buffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
-
-  const paginas = pdf.numPages;
-
-  const pagina = await pdf.getPage(1);
-  const viewport = pagina.getViewport({ scale: 1 });
-
-  const width = viewport.width;
-  const height = viewport.height;
-
-  // converter para mm (aproximado)
-  const mmWidth = width * 0.264583;
-  const mmHeight = height * 0.264583;
-
-  function detectarTamanho(w, h) {
-    const formatos = [
-      { nome: "A6", w: 105, h: 148 },
-      { nome: "A5", w: 148, h: 210 },
-      { nome: "A4", w: 210, h: 297 }
-    ];
-
-    for (const f of formatos) {
-      if (
-        Math.abs(w - f.w) < 15 &&
-        Math.abs(h - f.h) < 15
-      ) {
-        return f.nome;
+      function bate(a, b, alvoA, alvoB) {
+        return Math.abs(a - alvoA) < 15 && Math.abs(b - alvoB) < 15;
       }
+
+      for (const f of formatos) {
+        if (bate(w, h, f.w, f.h) || bate(h, w, f.w, f.h)) {
+          return f.nome;
+        }
+      }
+
+      return "A4";
     }
 
-    return "A4"; // fallback
-  }
-
-  const tamanhoDetectado = detectarTamanho(mmWidth, mmHeight);
-
-  return {
-    paginas,
-    tamanho: tamanhoDetectado
-  };
-}
-
+    async function analisarPDF(file) {
       const buffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
-      return pdf.numPages;
+
+      const paginas = pdf.numPages;
+      const pagina = await pdf.getPage(1);
+      const viewport = pagina.getViewport({ scale: 1 });
+
+      const width = viewport.width;
+      const height = viewport.height;
+
+      const mmWidth = width * 0.352778;
+      const mmHeight = height * 0.352778;
+
+      const tamanho = detectarTamanhoPorMM(mmWidth, mmHeight);
+
+      return { paginas, tamanho };
     }
 
     async function tratarArquivo() {
-  const file = document.getElementById("arquivo").files[0];
-  const info = document.getElementById("paginasInfo");
-  const inputPaginas = document.getElementById("paginas");
-  const selectTamanho = document.getElementById("tamanho");
-
-  if (!file) return;
-
-  const nome = file.name.toLowerCase();
-  const isPdf = file.type === "application/pdf" || nome.endsWith(".pdf");
-
-  if (isPdf) {
-    info.innerText = "PDF detectado. Analisando páginas e tamanho...";
-
-    try {
-      const resultado = await analisarPDF(file);
-
-      inputPaginas.value = resultado.paginas;
-      selectTamanho.value = resultado.tamanho;
-
-      info.innerText = `PDF detectado: ${resultado.paginas} páginas | Tamanho sugerido: ${resultado.tamanho}`;
-
-      calcular();
-    } catch (e) {
-      info.innerText = "Erro ao analisar PDF. Informe manualmente.";
-    }
-  } else {
-    info.innerText = "Arquivo não é PDF. Informe páginas manualmente.";
-  }
-}
+      const file = document.getElementById("arquivo").files[0];
+      const info = document.getElementById("paginasInfo");
+      const inputPaginas = document.getElementById("paginas");
+      const selectTamanho = document.getElementById("tamanho");
 
       if (!file) return;
 
@@ -417,17 +377,25 @@
       const isPdf = file.type === "application/pdf" || nome.endsWith(".pdf");
 
       if (isPdf) {
-        info.innerText = "PDF detectado. Contando páginas automaticamente...";
+        info.innerText = "PDF detectado. Analisando páginas e tamanho...";
+
         try {
-          const totalPaginas = await contarPaginasPDF(file);
-          inputPaginas.value = totalPaginas;
-          info.innerText = `PDF detectado. ${totalPaginas} página(s) encontradas automaticamente.`;
+          const resultado = await analisarPDF(file);
+
+          inputPaginas.value = resultado.paginas;
+
+          if ([...selectTamanho.options].some(opt => opt.value === resultado.tamanho)) {
+            selectTamanho.value = resultado.tamanho;
+          }
+
+          info.innerText = `PDF detectado: ${resultado.paginas} página(s) | Tamanho sugerido: ${resultado.tamanho}`;
           calcular();
         } catch (e) {
-          info.innerText = "Não consegui contar as páginas do PDF. Informe manualmente.";
+          console.error(e);
+          info.innerText = "Não consegui analisar o PDF. Informe as páginas manualmente.";
         }
       } else {
-        info.innerText = "Arquivo não é PDF. Informe o número de páginas manualmente.";
+        info.innerText = "Arquivo não é PDF. Informe o número de páginas manualmente e escolha o tamanho.";
       }
     }
 
