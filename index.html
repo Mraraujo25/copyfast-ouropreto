@@ -299,7 +299,45 @@
         console.error(erro);
       }
     };
-  </script>
+    window.verificarPagamento = async function () {
+  if (!ultimoPaymentId) {
+    alert("Nenhum pagamento encontrado.");
+    return;
+  }
+
+  const msg = document.getElementById("pixStatusMsg");
+  msg.innerText = "Verificando pagamento...";
+
+  try {
+    const resposta = await fetch("https://us-central1-copyfast-4c42b.cloudfunctions.net/verificarPagamentoPix", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        paymentId: ultimoPaymentId
+      })
+    });
+
+    const dados = await resposta.json();
+
+    if (!resposta.ok) {
+      throw new Error(dados.error || "Erro ao verificar pagamento");
+    }
+
+    if (dados.status === "approved") {
+      msg.innerText = "Pagamento confirmado! Abrindo WhatsApp...";
+      window.location.href = `https://wa.me/5531999999999?text=${encodeURIComponent(ultimaMensagemWhatsapp)}`;
+    } else {
+      msg.innerText = "Pagamento ainda não foi confirmado. Aguarde alguns segundos e tente novamente.";
+    }
+  } catch (erro) {
+    msg.innerText = "Erro ao verificar pagamento.";
+    alert("Erro: " + erro.message);
+  }
+};
+
+</script>
 
 </body>
 </html>
