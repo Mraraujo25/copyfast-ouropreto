@@ -188,6 +188,9 @@
     const precoPB = 0.20;
     const precoColorido = 1.00;
 
+    let ultimoPaymentId = null;
+    let ultimaMensagemWhatsapp = "";
+
     function calcular() {
       const tipo = document.getElementById("tipo").value;
       const paginas = parseInt(document.getElementById("paginas").value) || 0;
