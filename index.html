@@ -328,9 +328,52 @@
         `${paginas} página(s) × R$ ${valorPagina.toFixed(2)} = R$ ${subtotal.toFixed(2)} | desconto: R$ ${descontoValor.toFixed(2)}`;
     }
 
-    async function contarPaginasPDF(file) {
-      const pdfjsLib = window.pdfjsLib;
-      pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
+    async function analisarPDF(file) {
+  const pdfjsLib = window.pdfjsLib;
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/4.4.168/pdf.worker.min.mjs";
+
+  const buffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
+
+  const paginas = pdf.numPages;
+
+  const pagina = await pdf.getPage(1);
+  const viewport = pagina.getViewport({ scale: 1 });
+
+  const width = viewport.width;
+  const height = viewport.height;
+
+  // converter para mm (aproximado)
+  const mmWidth = width * 0.264583;
+  const mmHeight = height * 0.264583;
+
+  function detectarTamanho(w, h) {
+    const formatos = [
+      { nome: "A6", w: 105, h: 148 },
+      { nome: "A5", w: 148, h: 210 },
+      { nome: "A4", w: 210, h: 297 }
+    ];
+
+    for (const f of formatos) {
+      if (
+        Math.abs(w - f.w) < 15 &&
+        Math.abs(h - f.h) < 15
+      ) {
+        return f.nome;
+      }
+    }
+
+    return "A4"; // fallback
+  }
+
+  const tamanhoDetectado = detectarTamanho(mmWidth, mmHeight);
+
+  return {
+    paginas,
+    tamanho: tamanhoDetectado
+  };
+}
 
       const buffer = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({ data: buffer }).promise;
