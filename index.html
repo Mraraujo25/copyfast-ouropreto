@@ -165,9 +165,9 @@
       <div id="pixCode"></div>
       <button class="copy-btn" onclick="copiarPix()">Copiar código PIX</button>
       <div id="qrArea"></div>
-      <p class="small">Depois disso, o WhatsApp será aberto com o pedido completo.</p>
+      <button class="copy-btn" id="btnPago" onclick="verificarPagamento()">Já paguei</button>
+      <p class="small" id="pixStatusMsg">Pague o PIX e depois clique em "Já paguei".</p>
     </div>
-  </div>
 
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
