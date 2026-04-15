@@ -381,9 +381,35 @@
     }
 
     async function tratarArquivo() {
-      const file = document.getElementById("arquivo").files[0];
-      const info = document.getElementById("paginasInfo");
-      const inputPaginas = document.getElementById("paginas");
+  const file = document.getElementById("arquivo").files[0];
+  const info = document.getElementById("paginasInfo");
+  const inputPaginas = document.getElementById("paginas");
+  const selectTamanho = document.getElementById("tamanho");
+
+  if (!file) return;
+
+  const nome = file.name.toLowerCase();
+  const isPdf = file.type === "application/pdf" || nome.endsWith(".pdf");
+
+  if (isPdf) {
+    info.innerText = "PDF detectado. Analisando páginas e tamanho...";
+
+    try {
+      const resultado = await analisarPDF(file);
+
+      inputPaginas.value = resultado.paginas;
+      selectTamanho.value = resultado.tamanho;
+
+      info.innerText = `PDF detectado: ${resultado.paginas} páginas | Tamanho sugerido: ${resultado.tamanho}`;
+
+      calcular();
+    } catch (e) {
+      info.innerText = "Erro ao analisar PDF. Informe manualmente.";
+    }
+  } else {
+    info.innerText = "Arquivo não é PDF. Informe páginas manualmente.";
+  }
+}
 
       if (!file) return;
 
