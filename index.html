@@ -1,146 +1,301 @@
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Copyfast Ouro Preto</title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Copyfast Ouro Preto</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
 
-<style>
-body { font-family: Arial; margin:0; background:#f5f5f5; }
-header { background:black; color:white; text-align:center; padding:20px; }
-.container { max-width:600px; margin:40px auto; background:white; padding:30px; border-radius:10px; }
-input, textarea, select {
-    width:100%; padding:12px; margin-top:10px;
-    border-radius:8px; border:1px solid #ccc;
-}
-button {
-    width:100%; padding:15px; margin-top:20px;
-    background:black; color:white; border:none; border-radius:8px;
-}
-.price { text-align:center; margin-top:15px; font-size:20px; font-weight:bold; }
-.loading { text-align:center; display:none; }
-</style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+      background: #f5f5f5;
+      color: #111;
+    }
+
+    header {
+      background: #000;
+      color: #fff;
+      text-align: center;
+      padding: 28px 16px;
+    }
+
+    header h1 {
+      margin: 0 0 8px;
+      font-size: 28px;
+    }
+
+    header p {
+      margin: 0;
+      opacity: 0.9;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 32px auto;
+      background: #fff;
+      border-radius: 14px;
+      padding: 28px;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+    }
+
+    label {
+      display: block;
+      margin-top: 16px;
+      font-weight: bold;
+    }
+
+    input, select, textarea, button {
+      width: 100%;
+      margin-top: 8px;
+      padding: 12px 14px;
+      border-radius: 10px;
+      border: 1px solid #d7d7d7;
+      font-size: 15px;
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 100px;
+    }
+
+    button {
+      background: #000;
+      color: #fff;
+      border: none;
+      cursor: pointer;
+      margin-top: 24px;
+      font-weight: bold;
+    }
+
+    button:hover {
+      opacity: 0.92;
+    }
+
+    .price-box, .pix-box, .status-box {
+      margin-top: 20px;
+      padding: 16px;
+      border-radius: 12px;
+      background: #f1f1f1;
+    }
+
+    .price-box {
+      text-align: center;
+      font-size: 22px;
+      font-weight: bold;
+    }
+
+    .pix-box {
+      display: none;
+      word-break: break-word;
+    }
+
+    .pix-box h3 {
+      margin-top: 0;
+    }
+
+    .status-box {
+      display: none;
+      text-align: center;
+      font-weight: bold;
+    }
+
+    .small {
+      font-size: 13px;
+      color: #555;
+      margin-top: 8px;
+    }
+
+    .copy-btn {
+      margin-top: 12px;
+      background: #222;
+    }
+
+    img.qr {
+      width: 220px;
+      max-width: 100%;
+      display: block;
+      margin: 16px auto 0;
+      border-radius: 8px;
+      background: #fff;
+      padding: 8px;
+    }
+  </style>
 </head>
-
 <body>
 
-<header>
-<h1>Copyfast Ouro Preto</h1>
-<p>Envie seus arquivos para impressão</p>
-</header>
+  <header>
+    <h1>Copyfast Ouro Preto</h1>
+    <p>Envie seu arquivo, calcule o valor e gere o PIX automaticamente</p>
+  </header>
 
-<div class="container">
+  <div class="container">
+    <label for="nome">Seu nome</label>
+    <input type="text" id="nome" placeholder="Digite seu nome">
 
-<input type="text" id="nome" placeholder="Seu nome">
+    <label for="tipo">Tipo de impressão</label>
+    <select id="tipo">
+      <option value="pb">Preto e branco</option>
+      <option value="colorido">Colorido</option>
+    </select>
 
-<select id="tipo">
-<option value="pb">Preto e Branco</option>
-<option value="colorido">Colorido</option>
-</select>
+    <label for="paginas">Número de páginas</label>
+    <input type="number" id="paginas" min="1" value="1">
 
-<input type="number" id="paginas" value="1" min="1">
+    <label for="instrucao">Instruções</label>
+    <textarea id="instrucao" placeholder="Ex: frente e verso, grampear, entregar amanhã..."></textarea>
 
-<textarea id="instrucao" placeholder="Instruções"></textarea>
+    <label for="arquivo">Arquivo</label>
+    <input type="file" id="arquivo">
 
-<input type="file" id="arquivo">
+    <div class="price-box">
+      Total: R$ <span id="total">0.00</span>
+    </div>
 
-<div class="price">Total: R$ <span id="total">0.00</span></div>
+    <button onclick="enviar()">Enviar pedido</button>
 
-<button onclick="enviar()">Enviar Pedido</button>
+    <div class="status-box" id="statusBox">Enviando arquivo e gerando PIX...</div>
 
-<div class="loading" id="loading">Enviando arquivo...</div>
+    <div class="pix-box" id="pixBox">
+      <h3>PIX gerado com sucesso</h3>
+      <p><strong>Copia e cola:</strong></p>
+      <div id="pixCode"></div>
+      <button class="copy-btn" onclick="copiarPix()">Copiar código PIX</button>
+      <div id="qrArea"></div>
+      <p class="small">Depois disso, o WhatsApp será aberto com o pedido completo.</p>
+    </div>
+  </div>
 
-</div>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
+    import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-storage.js";
 
-<script type="module">
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-app.js";
-import { getStorage, ref, uploadBytes, getDownloadURL } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-storage.js";
-import { getFirestore, collection, addDoc } from "https://www.gstatic.com/firebasejs/12.12.0/firebase-firestore.js";
+    const firebaseConfig = {
+      apiKey: "AIzaSyCKGMEnwbW6UzJv2zwWFBEZN3xvXf1yejM",
+      authDomain: "copyfast-4c42b.firebaseapp.com",
+      projectId: "copyfast-4c42b",
+      storageBucket: "copyfast-4c42b.firebasestorage.app",
+      messagingSenderId: "1083745936240",
+      appId: "1:1083745936240:web:d5c83f5c89033d7060a5b5"
+    };
 
-const firebaseConfig = {
-  apiKey: "AIzaSyCKGMEnwbW6UzJv2zwWFBEZN3xvXf1yejM",
-  authDomain: "copyfast-4c42b.firebaseapp.com",
-  projectId: "copyfast-4c42b",
-  storageBucket: "copyfast-4c42b.firebasestorage.app",
-  messagingSenderId: "1083745936240",
-  appId: "1:1083745936240:web:d5c83f5c89033d7060a5b5"
-};
+    const app = initializeApp(firebaseConfig);
+    const storage = getStorage(app);
 
-const app = initializeApp(firebaseConfig);
-const storage = getStorage(app);
-const db = getFirestore(app);
+    const precoPB = 0.20;
+    const precoColorido = 1.00;
 
-const precoPB = 0.20;
-const precoColorido = 1.00;
+    function calcular() {
+      const tipo = document.getElementById("tipo").value;
+      const paginas = parseInt(document.getElementById("paginas").value) || 0;
 
-function calcular() {
-    let tipo = document.getElementById("tipo").value;
-    let paginas = document.getElementById("paginas").value;
-
-    let total = tipo === "pb"
+      const total = tipo === "pb"
         ? paginas * precoPB
         : paginas * precoColorido;
 
-    document.getElementById("total").innerText = total.toFixed(2);
-}
-
-document.getElementById("tipo").onchange = calcular;
-document.getElementById("paginas").oninput = calcular;
-
-calcular();
-
-window.enviar = async function () {
-
-    let nome = document.getElementById("nome").value;
-    let tipo = document.getElementById("tipo").value;
-    let paginas = document.getElementById("paginas").value;
-    let instrucao = document.getElementById("instrucao").value;
-    let file = document.getElementById("arquivo").files[0];
-    let total = document.getElementById("total").innerText;
-
-    if (!file) {
-        alert("Selecione um arquivo!");
-        return;
+      document.getElementById("total").innerText = total.toFixed(2);
     }
 
-    document.getElementById("loading").style.display = "block";
+    document.getElementById("tipo").addEventListener("change", calcular);
+    document.getElementById("paginas").addEventListener("input", calcular);
+    calcular();
 
-    try {
-        const storageRef = ref(storage, 'uploads/' + Date.now() + "_" + file.name);
+    window.copiarPix = async function () {
+      const texto = document.getElementById("pixCode").innerText;
+      try {
+        await navigator.clipboard.writeText(texto);
+        alert("Código PIX copiado!");
+      } catch {
+        alert("Não consegui copiar automaticamente. Copie manualmente.");
+      }
+    };
 
+    window.enviar = async function () {
+      const nome = document.getElementById("nome").value.trim();
+      const tipo = document.getElementById("tipo").value;
+      const paginas = document.getElementById("paginas").value;
+      const instrucao = document.getElementById("instrucao").value.trim();
+      const file = document.getElementById("arquivo").files[0];
+      const total = document.getElementById("total").innerText;
+
+      const statusBox = document.getElementById("statusBox");
+      const pixBox = document.getElementById("pixBox");
+      const pixCode = document.getElementById("pixCode");
+      const qrArea = document.getElementById("qrArea");
+
+      if (!nome) {
+        alert("Digite seu nome.");
+        return;
+      }
+
+      if (!file) {
+        alert("Selecione um arquivo.");
+        return;
+      }
+
+      statusBox.style.display = "block";
+      pixBox.style.display = "none";
+      pixCode.innerText = "";
+      qrArea.innerHTML = "";
+
+      try {
+        const storageRef = ref(storage, "uploads/" + Date.now() + "_" + file.name);
         await uploadBytes(storageRef, file);
 
         let url = await getDownloadURL(storageRef);
         url = url + "&alt=media";
 
-        // 🔥 SALVAR NO BANCO (AGORA SEM TRAVAR)
-        await addDoc(collection(db, "pedidos"), {
-            nome,
-            tipo,
-            paginas,
-            instrucao,
-            total,
-            arquivo: url,
-            data: new Date()
+        const respostaPix = await fetch("https://criarpix-325iae4qmq-uc.a.run.app", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({
+            nome: nome,
+            total: Number(total),
+            descricao: `Impressão ${tipo} - ${paginas} páginas`
+          })
         });
 
-        let mensagem = `Pedido:%0A
-Nome: ${nome}%0A
-Tipo: ${tipo}%0A
-Páginas: ${paginas}%0A
-Total: R$ ${total}%0A
-Arquivo: ${url}`;
+        const pix = await respostaPix.json();
 
-        window.location.href = `https://wa.me/5531989628676?text=${encodeURIComponent(mensagem)}`;
+        if (!respostaPix.ok) {
+          throw new Error(pix.error || "Falha ao gerar PIX");
+        }
 
-    } catch (erro) {
-        alert("Erro: " + erro);
+        statusBox.style.display = "none";
+        pixBox.style.display = "block";
+        pixCode.innerText = pix.qr_code || "Código PIX não retornado.";
+
+        if (pix.qr_code_base64) {
+          qrArea.innerHTML = `<img class="qr" src="data:image/png;base64,${pix.qr_code_base64}" alt="QR Code PIX">`;
+        }
+
+        const mensagem = `Olá! Pedido de impressão:
+Nome: ${nome}
+Tipo: ${tipo}
+Páginas: ${paginas}
+Total: R$ ${total}
+Instruções: ${instrucao || "Nenhuma"}
+Arquivo: ${url}
+
+PIX copia e cola:
+${pix.qr_code}`;
+
+        setTimeout(() => {
+          window.location.href = `https://wa.me/5531989628676?text=${encodeURIComponent(mensagem)}`;
+        }, 1200);
+
+      } catch (erro) {
+        statusBox.style.display = "none";
+        alert("Erro: " + erro.message);
         console.error(erro);
-    }
-
-    document.getElementById("loading").style.display = "none";
-}
-</script>
+      }
+    };
+  </script>
 
 </body>
 </html>
