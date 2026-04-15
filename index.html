@@ -248,7 +248,7 @@
         let url = await getDownloadURL(storageRef);
         url = url + "&alt=media";
 
-        const respostaPix = await fetch("https://criarpix-325iae4qmq-uc.a.run.app", {
+        const respostaPix = await fetch("https://us-central1-copyfast-4c42b.cloudfunctions.net/criarPix", {
           method: "POST",
           headers: {
             "Content-Type": "application/json"
