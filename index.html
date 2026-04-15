@@ -281,19 +281,17 @@
         }
 
         const mensagem = `Olá! Pedido de impressão:
-Nome: ${nome}
-Tipo: ${tipo}
-Páginas: ${paginas}
-Total: R$ ${total}
-Instruções: ${instrucao || "Nenhuma"}
-Arquivo: ${url}
+        Nome: ${nome}
+        Tipo: ${tipo}
+        Páginas: ${paginas}
+        Total: R$ ${total}
+        Instruções: ${instrucao || "Nenhuma"}
+        Arquivo: ${url}`;
 
-PIX copia e cola:
-${pix.qr_code}`;
+        ultimoPaymentId = pix.id;
+        ultimaMensagemWhatsapp = mensagem;
 
-        setTimeout(() => {
-          window.location.href = `https://wa.me/5531989628676?text=${encodeURIComponent(mensagem)}`;
-        }, 1200);
+        document.getElementById("pixStatusMsg").innerText = 'Pague o PIX e depois clique em "Já paguei".';
 
       } catch (erro) {
         statusBox.style.display = "none";
