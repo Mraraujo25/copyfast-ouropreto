@@ -33,7 +33,7 @@
     }
 
     .container {
-      max-width: 760px;
+      max-width: 820px;
       margin: 32px auto;
       background: #fff;
       border-radius: 16px;
@@ -155,7 +155,7 @@
 
   <header>
     <h1>Copyfast Ouro Preto</h1>
-    <p>Envie seu arquivo, escolha papel e tamanho, gere o PIX e finalize após o pagamento</p>
+    <p>Envie seu arquivo, escolha papel, qualidade e entrega, gere o PIX e finalize após o pagamento</p>
   </header>
 
   <div class="container">
@@ -172,15 +172,35 @@
       </div>
 
       <div>
-        <label for="tamanho">Tamanho do papel</label>
-        <select id="tamanho"></select>
+        <label for="qualidade">Qualidade de impressão</label>
+        <select id="qualidade">
+          <option value="economica">Econômica</option>
+          <option value="padrao">Padrão</option>
+          <option value="alta">Alta</option>
+        </select>
       </div>
     </div>
 
     <div class="row">
       <div>
+        <label for="tamanho">Tamanho do papel</label>
+        <select id="tamanho"></select>
+      </div>
+
+      <div>
         <label for="papel">Tipo de papel</label>
         <select id="papel"></select>
+      </div>
+    </div>
+
+    <div class="row">
+      <div>
+        <label for="localEntrega">Entrega / retirada</label>
+        <select id="localEntrega">
+          <option value="retirada_loja">Retirada na loja</option>
+          <option value="entrega">Entrega</option>
+          <option value="combinar">Combinar pelo WhatsApp</option>
+        </select>
       </div>
 
       <div>
@@ -256,6 +276,12 @@
 
     const numeroWhatsapp = "5531989628676";
 
+    const multiplicadorQualidade = {
+      economica: 1,
+      padrao: 1.12,
+      alta: 1.25
+    };
+
     async function carregarConfiguracao() {
       const refConfig = doc(db, "configuracoes", "precos");
       const snap = await getDoc(refConfig);
@@ -309,11 +335,15 @@
       if (!configuracao) return;
 
       const tipo = document.getElementById("tipo").value;
+      const qualidade = document.getElementById("qualidade").value;
       const tamanho = document.getElementById("tamanho").value;
       const papel = document.getElementById("papel").value;
       const paginas = parseInt(document.getElementById("paginas").value) || 0;
 
-      const valorPagina = pegarValorPagina(tipo, tamanho, papel);
+      const base = pegarValorPagina(tipo, tamanho, papel);
+      const mult = multiplicadorQualidade[qualidade] || 1;
+      const valorPagina = base * mult;
+
       const subtotal = paginas * valorPagina;
       const descontoPercentual = pegarDesconto(paginas);
       const descontoValor = subtotal * (descontoPercentual / 100);
@@ -323,7 +353,7 @@
       document.getElementById("descontoAplicado").innerText = `${descontoPercentual}%`;
       document.getElementById("total").innerText = total.toFixed(2);
       document.getElementById("detalheCalculo").innerText =
-        `${paginas} página(s) × R$ ${valorPagina.toFixed(2)} = R$ ${subtotal.toFixed(2)} | desconto: R$ ${descontoValor.toFixed(2)}`;
+        `${paginas} página(s) × R$ ${valorPagina.toFixed(2)} = R$ ${subtotal.toFixed(2)} | desconto: R$ ${descontoValor.toFixed(2)} | qualidade: ${qualidade}`;
     }
 
     function detectarTamanhoPorMM(w, h) {
@@ -400,6 +430,7 @@
     }
 
     document.getElementById("tipo").addEventListener("change", calcular);
+    document.getElementById("qualidade").addEventListener("change", calcular);
     document.getElementById("tamanho").addEventListener("change", calcular);
     document.getElementById("papel").addEventListener("change", calcular);
     document.getElementById("paginas").addEventListener("input", calcular);
@@ -418,8 +449,10 @@
     window.enviar = async function () {
       const nome = document.getElementById("nome").value.trim();
       const tipo = document.getElementById("tipo").value;
+      const qualidade = document.getElementById("qualidade").value;
       const tamanho = document.getElementById("tamanho").value;
       const papel = document.getElementById("papel").value;
+      const localEntrega = document.getElementById("localEntrega").value;
       const paginas = parseInt(document.getElementById("paginas").value) || 0;
       const instrucao = document.getElementById("instrucao").value.trim();
       const file = document.getElementById("arquivo").files[0];
@@ -457,6 +490,8 @@
         let url = await getDownloadURL(storageRef);
         url = url + "&alt=media";
 
+        const descricaoCompleta = `Impressão ${tipo} - ${qualidade} - ${tamanho} - ${papel} - ${paginas} páginas`;
+
         const respostaPix = await fetch("https://us-central1-copyfast-4c42b.cloudfunctions.net/criarPix", {
           method: "POST",
           headers: {
@@ -464,11 +499,14 @@
           },
           body: JSON.stringify({
             nome: nome,
-            tipo: `${tipo} | ${tamanho} | ${papel}`,
+            tipo: `${tipo} | ${qualidade} | ${tamanho} | ${papel}`,
             paginas: Number(paginas),
             total: Number(total),
-            descricao: `Impressão ${tipo} - ${tamanho} - ${papel} - ${paginas} páginas`,
-            arquivo: url
+            descricao: descricaoCompleta,
+            arquivo: url,
+            qualidade: qualidade,
+            localEntrega: localEntrega,
+            observacaoCliente: instrucao
           })
         });
 
@@ -489,8 +527,10 @@
         const mensagem = `Olá! Pedido de impressão:
 Nome: ${nome}
 Tipo: ${tipo}
+Qualidade: ${qualidade}
 Tamanho: ${tamanho}
 Papel: ${papel}
+Entrega/retirada: ${localEntrega}
 Páginas: ${paginas}
 Total: R$ ${total}
 Instruções: ${instrucao || "Nenhuma"}
