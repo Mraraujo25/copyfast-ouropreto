@@ -173,11 +173,7 @@
 
       <div>
         <label for="qualidade">Qualidade de impressão</label>
-        <select id="qualidade">
-          <option value="economica">Econômica</option>
-          <option value="padrao">Padrão</option>
-          <option value="alta">Alta</option>
-        </select>
+        <select id="qualidade"></select>
       </div>
     </div>
 
@@ -196,11 +192,7 @@
     <div class="row">
       <div>
         <label for="localEntrega">Entrega / retirada</label>
-        <select id="localEntrega">
-          <option value="retirada_loja">Retirada na loja</option>
-          <option value="entrega">Entrega</option>
-          <option value="combinar">Combinar pelo WhatsApp</option>
-        </select>
+        <select id="localEntrega"></select>
       </div>
 
       <div>
@@ -276,12 +268,6 @@
 
     const numeroWhatsapp = "5531989628676";
 
-    const multiplicadorQualidade = {
-      economica: 1,
-      padrao: 1.12,
-      alta: 1.25
-    };
-
     async function carregarConfiguracao() {
       const refConfig = doc(db, "configuracoes", "precos");
       const snap = await getDoc(refConfig);
@@ -299,9 +285,13 @@
     function preencherSelects() {
       const selectTamanho = document.getElementById("tamanho");
       const selectPapel = document.getElementById("papel");
+      const selectQualidade = document.getElementById("qualidade");
+      const selectEntrega = document.getElementById("localEntrega");
 
       selectTamanho.innerHTML = "";
       selectPapel.innerHTML = "";
+      selectQualidade.innerHTML = "";
+      selectEntrega.innerHTML = "";
 
       (configuracao.tamanhos || []).forEach(t => {
         selectTamanho.innerHTML += `<option value="${t}">${t}</option>`;
@@ -310,12 +300,40 @@
       (configuracao.papeis || []).forEach(p => {
         selectPapel.innerHTML += `<option value="${p.id}">${p.nome}</option>`;
       });
+
+      (configuracao.qualidades || []).forEach(q => {
+        selectQualidade.innerHTML += `<option value="${q.id}">${q.nome}</option>`;
+      });
+
+      (configuracao.opcoesEntrega || []).forEach(e => {
+        selectEntrega.innerHTML += `<option value="${e.id}">${e.nome}</option>`;
+      });
     }
 
     function pegarValorPagina(tipo, tamanho, papel) {
       if (!configuracao || !configuracao.precos || !configuracao.precos[tipo]) return 0;
       const chave = `${tamanho}_${papel}`;
       return Number(configuracao.precos[tipo][chave] || 0);
+    }
+
+    function pegarMultiplicadorQualidade(idQualidade) {
+      const qualidade = (configuracao?.qualidades || []).find(q => q.id === idQualidade);
+      return Number(qualidade?.multiplicador || 1);
+    }
+
+    function pegarNomeQualidade(idQualidade) {
+      const qualidade = (configuracao?.qualidades || []).find(q => q.id === idQualidade);
+      return qualidade?.nome || idQualidade;
+    }
+
+    function pegarNomeEntrega(idEntrega) {
+      const entrega = (configuracao?.opcoesEntrega || []).find(e => e.id === idEntrega);
+      return entrega?.nome || idEntrega;
+    }
+
+    function pegarNomePapel(idPapel) {
+      const papel = (configuracao?.papeis || []).find(p => p.id === idPapel);
+      return papel?.nome || idPapel;
     }
 
     function pegarDesconto(paginas) {
@@ -341,7 +359,7 @@
       const paginas = parseInt(document.getElementById("paginas").value) || 0;
 
       const base = pegarValorPagina(tipo, tamanho, papel);
-      const mult = multiplicadorQualidade[qualidade] || 1;
+      const mult = pegarMultiplicadorQualidade(qualidade);
       const valorPagina = base * mult;
 
       const subtotal = paginas * valorPagina;
@@ -353,7 +371,7 @@
       document.getElementById("descontoAplicado").innerText = `${descontoPercentual}%`;
       document.getElementById("total").innerText = total.toFixed(2);
       document.getElementById("detalheCalculo").innerText =
-        `${paginas} página(s) × R$ ${valorPagina.toFixed(2)} = R$ ${subtotal.toFixed(2)} | desconto: R$ ${descontoValor.toFixed(2)} | qualidade: ${qualidade}`;
+        `${paginas} página(s) × R$ ${valorPagina.toFixed(2)} = R$ ${subtotal.toFixed(2)} | desconto: R$ ${descontoValor.toFixed(2)} | qualidade: ${pegarNomeQualidade(qualidade)}`;
     }
 
     function detectarTamanhoPorMM(w, h) {
@@ -490,7 +508,11 @@
         let url = await getDownloadURL(storageRef);
         url = url + "&alt=media";
 
-        const descricaoCompleta = `Impressão ${tipo} - ${qualidade} - ${tamanho} - ${papel} - ${paginas} páginas`;
+        const qualidadeNome = pegarNomeQualidade(qualidade);
+        const papelNome = pegarNomePapel(papel);
+        const entregaNome = pegarNomeEntrega(localEntrega);
+
+        const descricaoCompleta = `Impressão ${tipo} - ${qualidadeNome} - ${tamanho} - ${papelNome} - ${paginas} páginas`;
 
         const respostaPix = await fetch("https://us-central1-copyfast-4c42b.cloudfunctions.net/criarPix", {
           method: "POST",
@@ -499,13 +521,13 @@
           },
           body: JSON.stringify({
             nome: nome,
-            tipo: `${tipo} | ${qualidade} | ${tamanho} | ${papel}`,
+            tipo: `${tipo} | ${qualidadeNome} | ${tamanho} | ${papelNome}`,
             paginas: Number(paginas),
             total: Number(total),
             descricao: descricaoCompleta,
             arquivo: url,
-            qualidade: qualidade,
-            localEntrega: localEntrega,
+            qualidade: qualidadeNome,
+            localEntrega: entregaNome,
             observacaoCliente: instrucao
           })
         });
@@ -527,10 +549,10 @@
         const mensagem = `Olá! Pedido de impressão:
 Nome: ${nome}
 Tipo: ${tipo}
-Qualidade: ${qualidade}
+Qualidade: ${qualidadeNome}
 Tamanho: ${tamanho}
-Papel: ${papel}
-Entrega/retirada: ${localEntrega}
+Papel: ${papelNome}
+Entrega/retirada: ${entregaNome}
 Páginas: ${paginas}
 Total: R$ ${total}
 Instruções: ${instrucao || "Nenhuma"}
